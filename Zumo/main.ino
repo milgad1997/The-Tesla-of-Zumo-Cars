@@ -288,3 +288,4 @@ void loop()
     intf.print(distance, 0, 0);                                 //Printer posisjon til første linje på LCD
     intf.print(batteryLevel, 0, 1);                             //Printer batterinivå til andre linje på LCD
 }
+
