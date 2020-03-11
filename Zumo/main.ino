@@ -247,14 +247,14 @@ class Battery
         {
             static float lastDistance = 0;
 
-            batteryLevel -= (trip-lastDistance)*((275.0+weight)/275.0);
-            if (batteryLevel < 0.0) batteryLevel = 0.0;
+            batteryLvl -= (trip-lastDistance)*((275.0+weight)/275.0);
+            if (batteryLvl < 0.0) batteryLvl = 0.0;
 
             lastDistance = trip;
 
-            if (batteryLevel <= 10) ledRed(HIGH);
+            if (batteryLvl <= 10) ledRed(HIGH);
 
-            return batteryLevel;
+            return batteryLvl;
         }
 };
 
