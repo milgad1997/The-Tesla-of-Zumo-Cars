@@ -219,8 +219,6 @@ class Battery
     private:
 
         float batteryLvl;
-        float lastTrip;
-
 
     public:
 
@@ -245,16 +243,18 @@ class Battery
         }
 
 
-        int getBatteryLevel(float trip, float weight)
+        int getBatteryLevel(float trip, float weight = 0.0)
         {
-            float weightCorr = (275+weight)/275;                //Korreksjonsfaktor for vekt på last
+            static float lastDistance = 0;
 
-            batteryLvl = constrain(batteryLvl - (trip-lastTrip)*weightCorr, 0, 100);    //Rekner ut batterinivå
-            lastTrip = trip;                                                            //Lagrer siste trip
+            batteryLevel -= (trip-lastDistance)*((275.0+weight)/275.0);
+            if (batteryLevel < 0.0) batteryLevel = 0.0;
 
-            if (batteryLvl <= 10) ledRed(HIGH);                 //Lyser raudt viss batteriet er under 10%
+            lastDistance = trip;
 
-            return (int)batteryLvl;                             //Returnerer batterinivå
+            if (batteryLevel <= 10) ledRed(HIGH);
+
+            return batteryLevel;
         }
 };
 
@@ -279,7 +279,7 @@ void setup()
 void loop()
 {
     int distance = motion.getTrip();                            //Henter distanse(tur) kjørt
-    int batteryLevel = battery.getBatteryLevel(distance, 0);    //Henter batterinivå basert på distanse kjørt
+    int batteryLevel = battery.getBatteryLevel(distance);    //Henter batterinivå basert på distanse kjørt
     int position = lineSensors.readLine(lineSensorValues);      //Leser av posisjonen til zumoen 
 
     drive.followLine(position, true, batteryLevel);             //Korrigerer retning basert på posisjon
