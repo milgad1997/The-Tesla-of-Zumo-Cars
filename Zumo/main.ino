@@ -62,6 +62,18 @@ class SelfDriving
             
             motors.setSpeeds(leftSpeed, rightSpeed);    //Setter fart til utrekna, korrigerte verdiar
         }
+
+        void followLinePID(int value, int target)       //Tar inn en linje posisjon og en ønsket hastighet
+        {
+            float error = 2000.0 - value;               //Gjør om posisjonen til en feilverdi
+
+            int adjust = (target/2500.0)*error + (error/abs(error))*0.03125*pow(9600, abs(error)/2000); //Regner ut hvor mye motorene skal justeres
+
+            int leftSpeed = constrain((target-adjust), -400, 400);  //Regner ut ny venstre fart
+            int rightSpeed = constrain((target+adjust), -400, 400); //Regner ut ny høyre fart
+
+            motors.setSpeeds(leftSpeed, rightSpeed);    //Setter nye hastigheter på motorene
+        }
 };
 
 
@@ -247,12 +259,12 @@ class Battery
         {
             static float lastDistance = 0;
 
-            batteryLvl -= (trip-lastDistance)*((275.0+weight)/275.0);
-            if (batteryLvl < 0.0) batteryLvl = 0.0;
+            batteryLvl -= (trip-lastDistance)*((275.0+weight)/275.0);   //Reduserer batterinivået basert på distanse og vekt
+            if (batteryLvl < 0.0) batteryLvl = 0.0;                     //Feiljustering i tilfelle batterinivået går under 0
 
-            lastDistance = trip;
+            lastDistance = trip;                                        //Lagrer tilbakelagt distanse
 
-            if (batteryLvl <= 10) ledRed(HIGH);
+            if (batteryLvl <= 10) ledRed(HIGH);                         //Skrur på rød led hvis batterinivået går under 10%
 
             return batteryLvl;
         }
