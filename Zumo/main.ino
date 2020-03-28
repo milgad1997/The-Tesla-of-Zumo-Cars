@@ -281,12 +281,6 @@ class Motion
         }
 
 
-        void calculateSpeed()
-        {
-            
-        }
-
-
     public:
 
         float getSpeed()
