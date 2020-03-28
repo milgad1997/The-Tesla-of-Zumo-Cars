@@ -391,7 +391,7 @@ class Battery
             return (int)level;                                                    //Returnerer batterinivå
         }
     
-        
+
         bool getEmergencyPower()
         {
             return empty;                                       //Får resterande batteri første gong den er under 10%
@@ -425,10 +425,10 @@ void setup()
 void loop()
 {
     int distance = motion.getTrip();                            //Henter distanse(tur) kjørt
-    int batteryLevel = battery.getBatteryLevel(distance);    //Henter batterinivå basert på distanse kjørt
+    int batteryLevel = battery.getBatteryLevel(distance);       //Henter batterinivå basert på distanse kjørt
     int position = lineSensors.readLine(lineSensorValues);      //Leser av posisjonen til zumoen 
 
-    drive.followLine(position, batteryLevel);             //Korrigerer retning basert på posisjon
+    drive.followLine(position, batteryLevel);                   //Korrigerer retning basert på posisjon
 
     intf.pause();                                               //Pause programmet ved å trykke A
     intf.print(distance, 0, 0);                                 //Printer posisjon til første linje på LCD
