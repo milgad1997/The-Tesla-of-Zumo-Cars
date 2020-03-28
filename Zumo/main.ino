@@ -281,6 +281,38 @@ class Motion
         }
 
 
+        float getAverageSpeed()
+        {
+            static unsigned long timer1 = millis();
+            static unsigned long timer2 = millis();
+            static unsigned long timeOver70;
+            static unsigned long counter;
+            static float sumOfSpeeds;
+            static float highestSpeed;
+            float maxSpeed;
+
+            if (momSpeed > highestSpeed) highestSpeed = momSpeed;
+            if (momSpeed < 0.7*maxSpeed) timer2 = millis();
+
+            timeOver70 += millis() - timer2;
+
+            if (momSpeed < 0) {
+                sumOfSpeeds += momSpeed;
+                counter++;
+                
+                if (millis() - timer1 >= 6000) {
+                    avgSpeed = sumOfSpeeds/counter;
+
+                    sumOfSpeeds = 0;
+                    counter = 0;
+                    timer1 = millis();
+
+                    return avgSpeed;
+                }
+            }
+        }
+
+
     public:
 
         float getSpeed()
@@ -358,7 +390,7 @@ class Battery
 
             return (int)level;                                                    //Returnerer batterinivå
         }
-
+    
 
         bool getEmergencyPower()
         {
