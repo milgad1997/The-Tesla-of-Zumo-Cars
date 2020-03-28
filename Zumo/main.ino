@@ -260,7 +260,7 @@ class Interface
                     lcd.print("<A B^ C>");
 
                     if (buttonA.getSingleDebouncedRelease()) config--;
-                    if (buttonA.getSingleDebouncedRelease()) break;
+                    if (buttonB.getSingleDebouncedRelease()) break;
                     if (buttonC.getSingleDebouncedRelease()) config++;
                     if (config < 0) config = sizeof(selection) - 2; //Må hardkode sidan kvart element i selection har ulik mengde bytes
                     if (config > sizeof(selection) - 2) config = 0;
