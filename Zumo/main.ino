@@ -64,28 +64,44 @@ class SelfDriving
             motors.setSpeeds(leftSpeed, rightSpeed);    //Setter fart til utrekna, korrigerte verdiar
         }
 
-        void autoPark()
+
+        void followObject(bool runInit)                 //Follow an object within prox. sensor range (~30-40 cm) as it would follow lines on ground
         {
-            //Add code for task a
+            if (runInit) {
+                proxSensors.initFrontSensor();          //Need to call this function in order to use the front prox. sensor
+                                                        //Can only use front when full line sensor array in use, ref. p. 20 in Pololu User Guide
+                runInit = false;                        //Keep init from running more than once
+            }                       
 
-            //Add code for task b
+            int driveSpeed = 200;
+            int turnSpeed = 400;
 
-            int leftSpeed;
-            int rightSpeed;
+            proxSensors.read();                         //Function that reads reflected IR from nearby object
 
-            proxSensors.initThreeSensors();     //Need to call this function in order to use the three prox. sensors
+            int leftReading = proxSensors.countsFrontWithLeftLeds();     //Returns an integer based on reflected IR light
+            int rightReading = proxSensors.countsFrontWithRightLeds();
 
-            proxSensors.read();                 //About 3 ms to run function (it updates i.e. countsWithLeftLeds() every iteration)
+            while ((leftReading + rightReading) == 0) {
+                proxSensors.read();
 
+                motors.setSpeeds(driveSpeed, 0);
 
-            void park(int leftProx, int rightProx, int fwdProx)
-            {
-                if (fwdProx < (leftProx + rightProx) / 2)
+                leftReading = proxSensors.countsFrontWithLeftLeds();
+                rightReading = proxSensors.countsFrontWithRightLeds();
 
-
+                if((leftReading + rightReading) != 0) {
+                    motors.setSpeeds(0,0);
+                    delay(30);                          //Motor safety delay time
+                }
             }
 
+            if (((leftReading + rightReading) / 2) == 2) motors.setSpeeds(driveSpeed, driveSpeed);   //Object is close to front of Zumo, drive towards it
 
+            else if ((leftReading || rightReading) >= 4) motors.setSpeeds(0, 0);                     //Object must be very close to an object, stop motors to prevent damage if no displacement
+
+            else if (leftReading > rightReading) motors.setSpeeds(driveSpeed, turnSpeed);
+
+            else if (leftReading < rightReading) motors.setSpeeds(turnSpeed, driveSpeed);
         }
 };
 
@@ -305,7 +321,7 @@ void loop()
 {
     int distance = motion.getTrip();                            //Henter distanse(tur) kjørt
     int batteryLevel = battery.getBatteryLevel(distance);    //Henter batterinivå basert på distanse kjørt
-    int position = lineSensors.readLine(lineSensorValues);      //Leser av posisjonen til zumoen 
+    int position = lineSensors.readLine(lineSensorValues);      //Leser av posisjonen til zumoen
 
     drive.followLine(position, true, batteryLevel);             //Korrigerer retning basert på posisjon
 
