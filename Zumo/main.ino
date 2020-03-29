@@ -1,13 +1,15 @@
-#include <Zumo32U4.h>               //Importerer Zumo-biblioteket
+#include <
+Zumo32U4.h>                   //Importerer Zumo-biblioteket
 
-Zumo32U4Motors motors;              //Oppretter instans av motorane
-Zumo32U4Encoders encoders;          //Oppretter instans av kodarane
-Zumo32U4LineSensors lineSensors;    //Oppretter instans av linjesensorane
-Zumo32U4ButtonA buttonA;            //Oppretter instans av knapp A
-Zumo32U4LCD lcd;                    //Oppretter instans av LCD-display
-Zumo32U4Buzzer buzzer;              //Oppretter instans av buzzeren
+Zumo32U4Motors motors;                  //Oppretter instans av motorane
+Zumo32U4Encoders encoders;              //Oppretter instans av kodarane
+Zumo32U4LineSensors lineSensors;        //Oppretter instans av linjesensorane
+Zumo32U4ButtonA buttonA;                //Oppretter instans av knapp A
+Zumo32U4LCD lcd;                        //Oppretter instans av LCD-display
+Zumo32U4Buzzer buzzer;                  //Oppretter instans av buzzeren
+Zumo32U4ProximitySensors proxSensors;   //Create instance of the proximity sensors
 
-unsigned int lineSensorValues[5];   //Verdien til kvar linjesensor
+unsigned int lineSensorValues[5];       //Verdien til kvar linjesensor
 
 
 
@@ -61,6 +63,30 @@ class SelfDriving
             rightSpeed *= batteryCorr;
             
             motors.setSpeeds(leftSpeed, rightSpeed);    //Setter fart til utrekna, korrigerte verdiar
+        }
+
+        void autoPark()
+        {
+            //Add code for task a
+
+            //Add code for task b
+
+            int leftSpeed;
+            int rightSpeed;
+
+            proxSensors.initThreeSensors();     //Need to call this function in order to use the three prox. sensors
+
+            proxSensors.read();                 //About 3 ms to run function (it updates i.e. countsWithLeftLeds() every iteration)
+
+
+            void park(int leftProx, int rightProx, int fwdProx)
+            {
+                if (fwdProx < (leftProx + rightProx) / 2)
+
+
+            }
+
+
         }
 };
 
