@@ -9,13 +9,13 @@ Zumo32U4ButtonC buttonC;            //Oppretter instans av knapp A
 Zumo32U4LCD lcd;                    //Oppretter instans av LCD-display
 Zumo32U4Buzzer buzzer;              //Oppretter instans av buzzeren
 
-unsigned int lineSensorValues[5];   //Verdien til kvar linjesensor
-
 
 
 class SelfDriving
 {
     private:
+
+        unsigned int lineSensorValues[5];   //Verdien til kvar linjesensor
 
         int leftSpeed;
         int rightSpeed;
@@ -63,8 +63,9 @@ class SelfDriving
         }
 
 
-        void followLine(int value, int batteryLevel, bool emergencyPower = false, bool fastMode = false)
+        void followLine(int batteryLevel, bool emergencyPower = false, bool fastMode = false)
         {
+            int value = lineSensors.readLine(lineSensorValues);         //Leser av posisjonen til zumoen 
             float batteryCorr = 1.00E+00 - exp(-1.00E-01*batteryLevel); //Korreksjonsfaktor for batterinivå
 
             if (fastMode) {                                             //Rask modus
@@ -167,31 +168,72 @@ class Interface
 {
     public:
 
-        void activate(char message1[], char message2[])
+        byte command()
         {
-            printMessage(message1);                         //Printer første instruksjon
-            buttonA.waitForButton();                        //Venter til knapp A blir trykka inn
-            printMessage(message2);                         //Printer andre instruksjon
-            
-            delay(2000);                                    //Gir tid til å lese instruksjon
+            //Vil prøve å få på rolling på LCD, slik at me kan skrive lengre instruksar...
 
-            lcd.clear();
-        }
+            static byte config = 0;
 
+            String selection[] = {
+                "Calibrate linesensors",
+                "Line follower",
+                "Object follower",
+                "Square",
+                "Sircle",
+                "Back and forth",
+                "Slalom"    
+            };
 
-        void pause()
-        {
-            if (buttonA.isPressed()) {                      //Viss knapp A blir trykka inn
-                motors.setSpeeds(0, 0);                     //Stopper motorane  
-                
-                printMessage("Press A to start");           //Printer instruksjon
-                
-                delay(2000);                                //Gir tid til å slippe knappen
-                buttonA.waitForButton();                    //Venter til knapp A blir trykka inn
-                delay(2000);                                //Gir tid til å slippe bilen
+            if (buttonB.getSingleDebouncedRelease()) {
+                while (true) {
+                    lcd.clear();
+                    lcd.print("B to continue");
+                    lcd.gotoXY(0, 1);
+                    lcd.print("A or C to configure");
 
-                lcd.clear();
+                    if (buttonB.getSingleDebouncedRelease()) return config;
+                    if (buttonA.isPressed() && buttonC.isPressed()) break;
+                } 
             }
+            
+            if (buttonA.isPressed() || buttonC.isPressed()) {
+                buttonA.waitForRelease();
+                buttonC.waitForRelease();
+
+                while (true) {
+                    lcd.clear();
+                    lcd.print(selection[config]);
+                    lcd.gotoXY(0, 1);
+                    lcd.print("<A B^ C>");
+
+                    if (buttonA.getSingleDebouncedRelease()) config--;
+                    if (buttonA.getSingleDebouncedRelease()) break;
+                    if (buttonC.getSingleDebouncedRelease()) config++;
+                    if (config < 0) config = sizeof(selection) - 2; //Må hardkode sidan kvart element i selection har ulik mengde bytes
+                    if (config > sizeof(selection) - 2) config = 0;
+                }
+            }
+            
+            if (usbPowerPresent()) {
+                if (!Serial) Serial.begin(9600);
+                while (!Serial);
+                //Vis instruksjonar
+
+                if (Serial.available()) {
+                    switch (Serial.read()) {
+                        case 'q':
+                            //Konfigurer
+                            break;
+                        case 'B':
+                            //Konfigurer
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            }
+
+            return config; 
         }
 
 
@@ -237,65 +279,7 @@ class Interface
                     lcd.print(message[x]);                      //Printer bokstav
                 }
             }
-        }
-
-       
-        void command()
-        {
-            byte config = 0;
-
-            String selection[] = {
-                "Calibrate",
-                "Square",
-                "Sircle",
-                "Cones",
-                "line"
-            };
-            
-            if (buttonA.getSingleDebouncedRelease() || buttonB.getSingleDebouncedRelease() || buttonC.getSingleDebouncedRelease()) {
-                while (true) {
-                    lcd.clear();
-                    lcd.print(selection[config]);
-                    lcd.gotoXY(0, 1);
-                    lcd.print("<A B^ C>");
-
-                    if (buttonA.getSingleDebouncedRelease()) config--;
-                    if (buttonA.getSingleDebouncedRelease()) break;
-                    if (buttonC.getSingleDebouncedRelease()) config++;
-                    if (config < 0) config = sizeof(selection) - 2; //Må hardkode sidan kvart element i selection har ulik mengde bytes
-                    if (config > sizeof(selection) - 2) config = 0;
-                }
-
-                switch (config) {
-                    case 0:
-                        //Konfigurer
-                        break;
-                    case 1:
-                        //Konfigurer
-                        break;
-                    default:
-                        break;
-                }
-            }
-            else if (usbPowerPresent()) {
-                if (!Serial) Serial.begin(9600);
-                while (!Serial);
-                //Vis instruksjonar
-
-                if (Serial.available()) {
-                    switch (Serial.read()) {
-                        case 'A':
-                            //Konfigurer
-                            break;
-                        case 'B':
-                            //Konfigurer
-                            break;
-                        default:
-                            break;
-                    }
-                }
-            } 
-        }           
+        }         
 };
 
 
@@ -464,24 +448,48 @@ Battery battery;                    //Instans for batteri
 
 
 
-void setup()
-{
-    intf.activate("Press A to cal.", "Wait for cal.");          //Instruerer brukar om calibrering og venter på kommando
-    drive.calibrateSensors();                                   //Kalibrerer sensorane på kommando
-    intf.activate("Press A to start", "Press A to stop");       //Instruerer brukar om start og venter på kommando
-}
+void setup() {}
 
 
 
 void loop()
 {
-    int distance = motion.getTrip();                            //Henter distanse(tur) kjørt
-    int batteryLevel = battery.getBatteryLevel(distance);       //Henter batterinivå basert på distanse kjørt
-    int position = lineSensors.readLine(lineSensorValues);      //Leser av posisjonen til zumoen 
+    switch (intf.command()) {
+        case 0:
+            drive.calibrateSensors();                                   //Kalibrerer sensorane på kommando
+            break;
 
-    drive.followLine(position, batteryLevel);                   //Korrigerer retning basert på posisjon
+        case 1:
+            int distance = motion.getTrip();                            //Henter distanse(tur) kjørt
+            int batteryLevel = battery.getBatteryLevel(distance);       //Henter batterinivå basert på distanse kjørt
 
-    intf.pause();                                               //Pause programmet ved å trykke A
-    intf.print(distance, 0, 0);                                 //Printer posisjon til første linje på LCD
-    intf.print(batteryLevel, 0, 1);                             //Printer batterinivå til andre linje på LCD
+            drive.followLine(batteryLevel);                   //Korrigerer retning basert på posisjon
+
+            intf.print(distance, 0, 0);                                 //Printer posisjon til første linje på LCD
+            intf.print(batteryLevel, 0, 1);                             //Printer batterinivå til andre linje på LCD
+            break;
+
+        case 2:
+            //Konfigurer objektfølgar
+            break;
+        
+        case 3:
+            drive.square();
+            break;
+
+        case 4:
+            drive.circle();
+            break;
+
+        case 5:
+            drive.backAndForth();
+            break;
+
+        case 6:
+            drive.slalom();
+            break;
+
+        default:
+            break;
+    }
 }
