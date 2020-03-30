@@ -233,7 +233,7 @@ class Interface
                 }
             }
 
-            return config; 
+            return config;
         }
 
 
@@ -445,6 +445,7 @@ SelfDriving drive;                  //Instans for sjølvkjøring
 Interface intf;                     //Instans for brukargrensesnitt
 Motion motion;                      //Instans for henting av distansedata
 Battery battery;                    //Instans for batteri
+
 
 
 
