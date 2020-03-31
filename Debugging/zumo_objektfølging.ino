@@ -129,23 +129,28 @@ SelfDriving drive;                  //Instans for sjølvkjøring
 
 
 void setup()
-{
-    intf.activate("Press A", "to cal.", "Wait for", "cal.");    //Instruerer brukar om calibrering og venter på kommando
+{  
+    delay(1000);
     drive.calibrateSensors();                                   //Kalibrerer sensorane på kommando
-    intf.activate("Press A", "to start", "Press A", "to stop"); //Instruerer brukar om start og venter på kommando
 }
 
 
 
 void loop()
 {
+    start:
+    
+    unsigned long time = millis();
+
     int position = lineSensors.readLine(lineSensorValues);      //Leser av posisjonen til zumoen
 
     drive.followLine(position, true, batteryLevel);             //Korrigerer retning basert på posisjon
 
-    if (millis() > 10000)
+    if (time > 10000)
     {
         drive.followObject();
+
+        if (buttonA.isPressed()) goto start;
     }
 }
 
