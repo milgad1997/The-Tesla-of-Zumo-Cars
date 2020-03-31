@@ -14,10 +14,19 @@ unsigned int lineSensorValues[5];       //Verdien til kvar linjesensor
 
 class SelfDriving
 {
+    private:
+
+        static bool lineInit;                               //Static bool to save variable value through program
+        static bool proxInit;                       
+
+
     public:
 
         void calibrateSensors() 
         {
+            lineInit = false;                               //Linesensors is now configured, no need to do it again
+            proxInit = true;                                //unless prox. sensors config has been run
+
             lineSensors.initFiveSensors();                  //Starter 5-linjesensorkonfigurasjonen
 
             for (int t = 0; t <= 200; t++) {                //Varer i 4000ms der t er tid i ms
@@ -33,6 +42,13 @@ class SelfDriving
 
         void followLine(int value, bool fastMode, int batteryLevel)
         {
+            if (lineInit && !proxInit) {
+                lineSensors.initFiveSensors();
+
+                lineInit = false;                            //Sensor init interlock
+                proxInit = true;
+            }
+
             int leftSpeed;
             int rightSpeed;
 
@@ -65,43 +81,44 @@ class SelfDriving
         }
 
 
-        void followObject(bool runInit)                 //Follow an object within prox. sensor range (~30-40 cm) as it would follow lines on ground
+        void followObject()                             //Follow an object within prox. sensor range (~30-40 cm) as it would follow lines on ground
         {
-            if (runInit) {
+            if (!lineInit && proxInit) {
                 proxSensors.initFrontSensor();          //Need to call this function in order to use the front prox. sensor
                                                         //Can only use front when full line sensor array in use, ref. p. 20 in Pololu User Guide
-                runInit = false;                        //Keep init from running more than once
+                proxInit = false;                       //Keep init from running more than once
+                lineInit = true;
             }                       
 
             int driveSpeed = 200;
             int turnSpeed = 400;
 
-            proxSensors.read();                         //Function that reads reflected IR from nearby object
+            proxSensors.read();                                          //Function that reads reflected IR from nearby object, takes ~ 3 ms to run
 
             int leftReading = proxSensors.countsFrontWithLeftLeds();     //Returns an integer based on reflected IR light
             int rightReading = proxSensors.countsFrontWithRightLeds();
 
-            while ((leftReading + rightReading) == 0) {
-                proxSensors.read();
+            while ((leftReading + rightReading) == 0) {                  //As long as no object is detected, turn until detected
+                proxSensors.read();                                      //Read sensor values for every iteration of the while loop
 
                 motors.setSpeeds(driveSpeed, 0);
 
-                leftReading = proxSensors.countsFrontWithLeftLeds();
-                rightReading = proxSensors.countsFrontWithRightLeds();
+                leftReading = proxSensors.countsFrontWithLeftLeds();     //Get value from front left prox. sensor
+                rightReading = proxSensors.countsFrontWithRightLeds();   //Get value from front right prox. sensor
 
-                if((leftReading + rightReading) != 0) {
+                if((leftReading + rightReading) != 0) {                  //If one of the two sensors detected something, stop turning and exit while loop
                     motors.setSpeeds(0,0);
-                    delay(30);                          //Motor safety delay time
+                    delay(30);                                           //Motor safety delay time
                 }
             }
 
-            if (((leftReading + rightReading) / 2) == 2) motors.setSpeeds(driveSpeed, driveSpeed);   //Object is close to front of Zumo, drive towards it
+            if (((leftReading + rightReading) / 2) == 2) motors.setSpeeds(driveSpeed, driveSpeed);   //Object is close to front of Zumo and directly in front of it, drive towards object
 
-            else if ((leftReading || rightReading) >= 4) motors.setSpeeds(0, 0);                     //Object must be very close to an object, stop motors to prevent damage if no displacement
+            else if (leftReading >= 4 || rightReading >= 4) motors.setSpeeds(0, 0);                  //Object must be very close to an object, stop motors to prevent damage as preventive measure
 
-            else if (leftReading > rightReading) motors.setSpeeds(driveSpeed, turnSpeed);
+            else if (leftReading > rightReading) motors.setSpeeds(driveSpeed, turnSpeed);            //Object is to the left, turn left
 
-            else if (leftReading < rightReading) motors.setSpeeds(turnSpeed, driveSpeed);
+            else if (leftReading < rightReading) motors.setSpeeds(turnSpeed, driveSpeed);            //Objct is to the right, turn right
         }
 };
 
