@@ -87,7 +87,7 @@ class SelfDriving
                 proxSensors.initFrontSensor();          //Need to call this function in order to use the front prox. sensor
                                                         //Can only use front when full line sensor array in use, ref. p. 20 in Pololu User Guide
                 proxInit = false;                       //Keep init from running more than once
-                lineInit = true;
+                lineInit = true;                        //Sensor init interlock
             }                       
 
             int driveSpeed = 200;
