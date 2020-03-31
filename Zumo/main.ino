@@ -16,8 +16,8 @@ class SelfDriving
 {
     private:
 
-        static bool lineInit;                               //Static bool to save variable value through program 
-        static bool proxInit;                        
+        bool lineInit;                                      //Static bool to save variable value through program 
+        bool proxInit;                        
  
  
     public:
