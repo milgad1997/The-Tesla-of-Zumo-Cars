@@ -94,19 +94,24 @@ class SelfDriving
             int leftReading = proxSensors.countsFrontWithLeftLeds();     //Returns an integer based on reflected IR light
             int rightReading = proxSensors.countsFrontWithRightLeds();
 
-            while (((leftReading + rightReading)) / 2 < 3) {             //As long as no object is detected (object is ~ 140 cm from Zumo), turn until detected
+            while (((leftReading + rightReading)) / 2 < 4) {             //As long as no object is detected (object is ~ 140 cm from Zumo), turn until detected
                 proxSensors.read();                                      //Read sensor values for every iteration of the while loop
 
-                motors.setSpeeds(driveSpeed, 0);
+                motors.setSpeeds(turnSpeed, 0);
 
                 leftReading = proxSensors.countsFrontWithLeftLeds();     //Get value from front left prox. sensor
                 rightReading = proxSensors.countsFrontWithRightLeds();   //Get value from front right prox. sensor
 
-                if(leftReading >= 3 || rightReading >= 3) {              //If the sensor detected something (within ~ 140 cm range), stop turning and exit while loop
+                if(leftReading >= 4 || rightReading >= 4) {              //If the sensor detected something (within ~ 140 cm range), stop turning and exit while loop
                     motors.setSpeeds(0,0);
                     delay(30);                                           //Motor safety delay time
                 }
             }
+
+            Serial.print("Left: ");
+            Serial.print(leftReading);
+            Serial.print("\tRight: ");
+            Serial.println(rightReading);
 
             if ((leftReading > 5) || (rightReading > 5)) motors.setSpeeds(0, 0);                     //Object must be very close (less than 30 cm) to an object, stop motors as a preventive measure 
 
@@ -126,6 +131,7 @@ SelfDriving drive;                  //Instans for sjølvkjøring
 
 void setup()
 {  
+    Serial.begin(115200);
     delay(1000);
     drive.calibrateSensors();                                   //Kalibrerer sensorane på kommando
 }
@@ -140,7 +146,7 @@ void loop()
 
     int position = lineSensors.readLine(lineSensorValues);      //Leser av posisjonen til zumoen
 
-    drive.followLine(position, true, batteryLevel);             //Korrigerer retning basert på posisjon
+    if (time < 10000) drive.followLine(position, false, 100);             //Korrigerer retning basert på posisjon
 
     if (time > 10000)
     {
