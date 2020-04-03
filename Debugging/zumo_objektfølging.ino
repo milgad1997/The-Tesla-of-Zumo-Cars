@@ -108,11 +108,6 @@ class SelfDriving
                 }
             }
 
-            Serial.print("Left: ");
-            Serial.print(leftReading);
-            Serial.print("\tRight: ");
-            Serial.println(rightReading);
-
             if ((leftReading > 5) || (rightReading > 5)) motors.setSpeeds(0, 0);                     //Object must be very close (less than 30 cm) to an object, stop motors as a preventive measure 
 
             else if (leftReading > rightReading) motors.setSpeeds(driveSpeed, turnSpeed);            //Object is to the left, turn left 
@@ -131,7 +126,6 @@ SelfDriving drive;                  //Instans for sjølvkjøring
 
 void setup()
 {  
-    Serial.begin(115200);
     delay(1000);
     drive.calibrateSensors();                                   //Kalibrerer sensorane på kommando
 }
@@ -140,20 +134,13 @@ void setup()
 
 void loop()
 {
-    start:
-    
     unsigned long time = millis();
 
     int position = lineSensors.readLine(lineSensorValues);      //Leser av posisjonen til zumoen
 
     if (time < 10000) drive.followLine(position, false, 100);             //Korrigerer retning basert på posisjon
 
-    if (time > 10000)
-    {
-        drive.followObject();
-
-        if (buttonA.isPressed()) goto start;
-    }
+    else drive.followObject();
 }
 
 
