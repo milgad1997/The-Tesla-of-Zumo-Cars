@@ -63,7 +63,7 @@ class SelfDriving
         }
 
 
-        void followLine(int batteryLevel, bool emergencyPower = false, bool fastMode = false)
+        void followLine(int batteryLevel = 100, bool emergencyPower = false, bool fastMode = false)
         {
             int value = lineSensors.readLine(lineSensorValues);         //Leser av posisjonen til zumoen 
             float batteryCorr = 1.00E+00 - exp(-1.00E-01*batteryLevel); //Korreksjonsfaktor for batterinivå
@@ -315,218 +315,13 @@ class Interface
             }
 
             return config;
-        }
-
-
-        void print(int value, int X, int Y)
-        {
-            static unsigned long timer = millis();              //Variabel som lagrer tida for siste print
-
-            if (millis() - timer > 100) {                       //Printer ikkje oftare enn kvart 100ms for lesbarhet
-                lcd.gotoXY(X, Y);                               //Går til valgt posisjon på LCD
-                lcd.print(value);                               //Printer tal med decimalar
-                
-                timer = millis();                               //Lagrer tida
-            }
-        }
-
-
-        void print(float value, int X, int Y)
-        {
-            static unsigned long timer = millis();              //Variabel som lagrer tida for siste print
-
-            if (millis() - timer > 100) {                       //Printer ikkje oftare enn kvart 100ms for lesbarhet
-                lcd.gotoXY(X, Y);                               //Går til valgt posisjon på LCD
-                lcd.print(value);                               //Printer tal utan desimalar
-                
-                timer = millis();                               //Lagrer tida
-            }
-        }
-
-
-        void printMessage(char message[])
-        {
-            lcd.clear();
-
-            for (byte x = 0, y = 0; x < constrain(sizeof(message)-1, 0, 16); x++)   //Itererer gjennom stringen
-            {
-                if (x >= 8) {                                   //Viss stringen er lenger enn første rad
-                    y = 1;                                      //Starter på neste rad.
-                    lcd.gotoXY(x-8, y);                         
-                    lcd.print(message[x]);                      //Printer bokstav
-                }
-                else {
-                    lcd.gotoXY(x, y);
-                    lcd.print(message[x]);                      //Printer bokstav
-                }
-            }
         }         
-};
-
-
-
-class Motion
-{
-    private:
-
-        float momSpeed;
-        float avgSpeed;
-        float trip;
-        float distance;
-        float displacement;
-
-
-        void calculateMotion()
-        {
-            static unsigned long timer;                                 //Timer for å lagre tidsintervallet
-
-            int leftCount = encoders.getCountsAndResetLeft();           //Leser av teljarane på venstre kodar
-            int rightCount = encoders.getCountsAndResetRight();         //Leser av teljarane på høgre kodar
-
-            //Teoretisk count per meter er 909.7(2*pi*r)=7425
-
-            float avgDisp = (leftCount + rightCount)/(2.0*7765.0);      //Gjennomsnittlig forflytning bilen har gått
-            float avgDist = abs(avgDisp);                               //Distansen er absoluttverdien av forflytninga
-
-            trip += avgDist;                                            //Akkumulerer trip-teljar
-            distance += avgDist;                                        //Akkumulerer distanse
-            displacement += avgDisp;                                    //Akkumulerer forflytning
-
-            momSpeed = avgDisp/(millis() - timer)*1000;                 //Momentanfarta
-            timer = millis(); 
-        }
-
-
-        float getAverageSpeed()
-        {
-            static unsigned long timer1 = millis();
-            static unsigned long timer2 = millis();
-            static unsigned long timeOver70;
-            static unsigned long counter;
-            static float sumOfSpeeds;
-            static float highestSpeed;
-            float maxSpeed;
-
-            if (momSpeed > highestSpeed) highestSpeed = momSpeed;
-            if (momSpeed < 0.7*maxSpeed) timer2 = millis();
-
-            timeOver70 += millis() - timer2;
-
-            if (momSpeed < 0) {
-                sumOfSpeeds += momSpeed;
-                counter++;
-                
-                if (millis() - timer1 >= 6000) {
-                    avgSpeed = sumOfSpeeds/counter;
-
-                    sumOfSpeeds = 0;
-                    counter = 0;
-                    timer1 = millis();
-
-                    return avgSpeed;
-                }
-            }
-        }
-
-
-    public:
-
-        float getSpeed()
-        {
-            calculateMotion();          //Kalkulerer bevegelsen
-            return momSpeed;               //Henter gjennomsnittsfart
-        }
-
-
-        float getDistance()
-        {
-            calculateMotion();          //Kalkulerer bevegelsen
-            return distance;            //Henter distansen
-        }
-
-
-        float getDisplacement()
-        {
-            calculateMotion();          //Kalkulerer bevegelsen
-            return displacement;        //Henter forflytninga
-        } 
-        
-
-        float getTrip()
-        {
-            calculateMotion();          //Kalkulerer bevegelsen
-            return trip;                //Henter trip-teljar
-        }
-
-
-        void setTrip(int value)
-        {
-            trip = value;               //Setter trip-verdi
-        }
-};
-
-
-
-class Battery
-{
-    private:
-
-        int health;
-        int cycles;
-        float level;
-        float lastTrip;
-        bool empty;
-
-
-    public:
-
-        void chargeBattery()
-        {
-            static bool ledState = HIGH;                        //Variabel som lagrer tilstand til LED
-            
-            for (byte i = 0; i <= 100; i++) {
-                level = i;
-
-                ledRed(ledState);
-                ledState = !ledState;                           //Toggler tilstand
-                delay(400);
-            }
-        }
-
-
-        int getBatteryLevel(float trip, float weight=0, float speed=0)
-        {
-            level = constrain(level - (trip-lastTrip)*(275+weight)/275, 0, 100);  //Rekner ut batterinivå
-            lastTrip = trip;                                                      //Lagrer siste trip
-
-            if (level <= 10) {                                                    //Viss batterinivået er under 10%
-                empty = true;                                                     //Inkrementerer teljar
-                ledRed(HIGH);
-            }
-
-            return (int)level;                                                    //Returnerer batterinivå
-        }
-    
-
-        bool getEmergencyPower()
-        {
-            return empty;                                       //Får resterande batteri første gong den er under 10%
-        }
-
-
-        void resetEmpty()
-        {
-            empty = false;
-        }
 };
 
 
 
 SelfDriving drive;                  //Instans for sjølvkjøring
 Interface intf;                     //Instans for brukargrensesnitt
-Motion motion;                      //Instans for henting av distansedata
-Battery battery;                    //Instans for batteri
-
 
 
 
@@ -534,7 +329,6 @@ void setup()
 {
     lcd.clear();
     lcd.print("Press A");
-    lcd.print("to start");
 
     while(!buttonA.isPressed());
 }
@@ -551,13 +345,11 @@ void loop()
             break;
 
         case 1:
-            int distance = motion.getTrip();                            //Henter distanse(tur) kjørt
-            int batteryLevel = battery.getBatteryLevel(distance);       //Henter batterinivå basert på distanse kjørt
+            drive.followLine();                   //Korrigerer retning basert på posisjon
 
-            drive.followLine(batteryLevel);                   //Korrigerer retning basert på posisjon
-
-            intf.print(distance, 0, 0);                                 //Printer posisjon til første linje på LCD
-            intf.print(batteryLevel, 0, 1);                             //Printer batterinivå til andre linje på LCD
+            lcd.clear();
+            if (config[1] == 0) lcd.print("Normal");
+            if (config[1] == 1) lcd.print("PD");
             break;
 
         case 2:
