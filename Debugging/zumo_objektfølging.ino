@@ -86,8 +86,8 @@ class SelfDriving
                 sensorInitInterlock = true;             //Init interlock, if followLine() is called after followObject() has been called, initFiveSensors
             }                       
 
-            int driveSpeed = 200;
-            int turnSpeed = 400;
+            int driveSpeed = 150;
+            int turnSpeed = 300;
 
             proxSensors.read();                                          //Function that reads reflected IR from nearby object, takes ~ 3 ms to run
 
@@ -108,13 +108,13 @@ class SelfDriving
                 }
             }
 
-            if (((leftReading + rightReading) % 2) == 0) motors.setSpeeds(driveSpeed, driveSpeed);   //Object is directly in front of Zumo, drive towards object
-
-            else if (leftReading > 5 || rightReading > 5) motors.setSpeeds(0, 0);                    //Object must be very close (less than 30 cm) to an object, stop motors as a preventive measure 
+            if ((leftReading > 5) || (rightReading > 5)) motors.setSpeeds(0, 0);                     //Object must be very close (less than 30 cm) to an object, stop motors as a preventive measure 
 
             else if (leftReading > rightReading) motors.setSpeeds(driveSpeed, turnSpeed);            //Object is to the left, turn left 
 
-            else if (leftReading < rightReading) motors.setSpeeds(turnSpeed, driveSpeed);            //Objct is to the right, turn right 
+            else if (leftReading < rightReading) motors.setSpeeds(turnSpeed, driveSpeed);            //Objct is to the right, turn right
+
+            else motors.setSpeeds(driveSpeed, driveSpeed);                                           //Object is directly in front of Zumo, drive towards object 
         }
 };
 
