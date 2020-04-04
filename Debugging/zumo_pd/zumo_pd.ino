@@ -6,11 +6,6 @@ Zumo32U4Motors motors;              //Oppretter instans av motorane
 Zumo32U4Encoders encoders;          //Oppretter instans av kodarane
 Zumo32U4LineSensors lineSensors;    //Oppretter instans av linjesensorane
 Zumo32U4ButtonA buttonA;            //Oppretter instans av knapp A
-Zumo32U4ButtonB buttonB;            //Oppretter instans av knapp A
-Zumo32U4ButtonC buttonC;            //Oppretter instans av knapp A
-Zumo32U4LCD lcd;                    //Oppretter instans av LCD-display
-Zumo32U4Buzzer buzzer;              //Oppretter instans av buzzeren
-LSM303 compass;                     //Oppretter instans av akselerometer
 
 
 
@@ -24,6 +19,54 @@ class SelfDriving
         int leftSpeed;
         int rightSpeed;
 
+        void rotate(int degrees)
+        {
+            float arcCounts = 7.63125*degrees;                  //Calibrated number of counts for given angle
+
+            int leftStart = encoders.getCountsLeft();           //Start counts left
+            int rightStart = encoders.getCountsRight();         //Start counts right
+
+            int sum = 0;
+
+            motors.setSpeeds(0, 0);                             //Stop motor before rotation
+            delay(50);                                          //Delay to get rid of momentum
+
+            while (encoders.getCountsRight() - rightStart < arcCounts) 
+            {
+                int left = encoders.getCountsLeft() - leftStart;        //Left counts since start
+                int right = encoders.getCountsRight() - rightStart;     //Right counts since start
+                int err = left + right;                                 //Error based on difference in counts
+
+                sum += err;                                             //Integral of error
+                
+                int adjust = 0.1*err + 0.001*sum;                       //Calculates weighted adjustment
+
+                left = constrain(-200 + adjust, -400, 400);             //New left speed
+                right = constrain(200 - adjust, -400, 400);             //New right speed
+                
+                motors.setSpeeds(left, right);                          //Set motor speeds
+            }
+
+            motors.setSpeeds(0, 0);
+            delay(50);
+        }
+
+        int encoderPD(int leftStart, int rightStart, int last)
+        {
+            int left = encoders.getCountsLeft() - leftStart;        //Left counts since start
+            int right = encoders.getCountsRight() - rightStart;     //Right counts since start
+            int err = left - right;                                 //Error based on difference in counts
+            
+            int adjust = 0.5*err + 0.1*(err - last);                //Calculates weighted adjustment
+
+            left = constrain(200 - adjust, -400, 400);              //New left speed
+            right = constrain(200 + adjust, -400, 400);             //New right speed
+            
+            motors.setSpeeds(left, right);                          //Set motor speeds
+
+            return err;                                             //Return error for next deriavative
+        }
+
         int PD(int input, int last, int speed, int batteryLevel)
         {
             int error = 2000 - input;                                   //Converts position to error based on desired position
@@ -36,10 +79,36 @@ class SelfDriving
 
             motors.setSpeeds(left*batteryCorr, right*batteryCorr);      //Set speeds adjusted for battery level
 
-            return error;                                               //Return error to calculate next deriavative
+            return error;                                               //Return error for next deriavative
         }
 
     public:
+
+        void rot(int d) {rotate(d);}
+
+        void square()
+        {
+            for (byte n = 0; n < 4; n++) {
+                motors.setSpeeds(200, 200);
+                delay(2000);
+                rotate(90);
+            }
+        }
+
+        void line(unsigned long time) 
+        {
+            unsigned long start = millis();                             //Start time
+
+            int leftCounter = encoders.getCountsLeft();                 //Start counts left
+            int rightCounter = encoders.getCountsRight();               //Start counts right
+
+            while (millis() - start < time)                             //Drives forward for set amount of time
+            {
+                static int last = 0;
+                last = encoderPD(leftCounter, rightCounter, last);      //Adjusts motor speeds and stores return value
+            }
+            motors.setSpeeds(0,0);                                      //Stops motors at end of time period
+        }
 
         void calibrateSensors() 
         {
@@ -70,16 +139,17 @@ SelfDriving drive;                  //Instans for sjølvkjøring
 
 void setup() 
 {
-    buttonA.waitForPress();
+    /*buttonA.waitForPress();
     delay(1000);
-    drive.calibrateSensors();
+    drive.calibrateSensors();*/
 }
 
 
 
 void loop()
 {
-
-    drive.followLinePD(400, 100);
+    buttonA.waitForPress();
+    delay(1000);
+    drive.square();
     
 }
