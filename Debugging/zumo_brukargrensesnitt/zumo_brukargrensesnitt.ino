@@ -171,6 +171,34 @@ class Interface
         bool force = true;      //Variable that controls whether or not buttons are required to prompt configuration.
 
 
+        void print(char* string)
+        {
+            static unsigned long timer = millis();              //Variabel som lagrer tida for siste print
+
+            if (millis() - timer > 100) {                       //Printer ikkje oftare enn kvart 100ms for lesbarhet
+                lcd.clear();
+                lcd.print(string);                               //Printer tal utan desimalar
+                lcd.gotoXY(0, 1);
+                lcd.print("<A B^ C>");
+                
+                timer = millis();                               //Lagrer tida
+            }
+        }
+
+        
+        void print(int value, int X, int Y)
+        {
+            static unsigned long timer = millis();              //Variabel som lagrer tida for siste print
+
+            if (millis() - timer > 100) {                       //Printer ikkje oftare enn kvart 100ms for lesbarhet
+                lcd.gotoXY(X, Y);                               //Går til valgt posisjon på LCD
+                lcd.print(value);                               //Printer tal med decimalar
+                
+                timer = millis();                               //Lagrer tida
+            }
+        }
+
+
     public:
 
         int* command()
@@ -245,6 +273,7 @@ class Interface
                         lcd.print("Ready.");
 
                         buttonB.waitForRelease();   //Waits for button B before initializing configuration.
+                        lcd.clear();
                         break;        
                     }
                 }
@@ -265,20 +294,15 @@ class Interface
             if (buttonA.getSingleDebouncedRelease() || buttonC.getSingleDebouncedRelease() || force) {  //Prompts selection of modes.
                 config[1] = 0;                                                                          //Resets configuration.
 
-                lcd.clear();
-                lcd.gotoXY(0, 1);
-                lcd.print("<A B^ C>");
-                lcd.gotoXY(0, 0);
-
                 while (true) {                                                          //Continuously checks if somthing happens.                                                     
-                    lcd.print(modes[config[0]]);                                        //Prints current mode.
+                    print(modes[config[0]]);                                            //Prints current mode.
 
                     if (buttonA.getSingleDebouncedRelease()) config[0]--;               //Toggles back to previous mode.
                     if (buttonC.getSingleDebouncedRelease()) config[0]++;               //Toggles forward to following mode.
                     if (buttonB.getSingleDebouncedRelease()) {                          //Chooses current mode.
                         while (config[0] == 1) {                                        //Prompts line follower configuration.
-                            if (config[1] == 0) lcd.print("Normal");                    //Prints current configuration.
-                            if (config[1] == 1) lcd.print("PID");
+                            if (config[1] == 0) print("Normal");                        //Prints current configuration.
+                            if (config[1] == 1) print("PID");
                                         
                             if (buttonA.getSingleDebouncedRelease()) config[1]--;       //Toggles back to previous configuration.
                             if (buttonC.getSingleDebouncedRelease()) config[1]++;       //Toggles forward to following configuration.
@@ -289,10 +313,8 @@ class Interface
                         }
 
                         while (config[0] == 6) {                                        //Prompts slalom configuration.
-                            lcd.print("cm: ");
-                            lcd.gotoXY(4, 0);
-                            lcd.print(config[1]);                                       //Prints current distance between cones.
-                            lcd.gotoXY(0, 0);
+                            print("cm: ");
+                            print(config[1], 4, 0);                                     //Prints current distance between cones.
 
                             if (buttonA.getSingleDebouncedRelease()) config[1] -= 10;   //Increments distance between cones.
                             if (buttonC.getSingleDebouncedRelease()) config[1] += 10;   //Decrements distance between cones.
