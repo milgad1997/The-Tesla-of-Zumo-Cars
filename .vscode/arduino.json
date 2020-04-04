@@ -1,5 +1,0 @@
-{
-    "board": "pololu-a-star:avr:a-star32U4",
-    "sketch": "Debugging\\zumo_pd\\zumo_pd.ino",
-    "port": "COM3"
-}
