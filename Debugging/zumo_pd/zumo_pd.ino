@@ -11,7 +11,6 @@ Zumo32U4ButtonC buttonC;            //Oppretter instans av knapp A
 Zumo32U4LCD lcd;                    //Oppretter instans av LCD-display
 Zumo32U4Buzzer buzzer;              //Oppretter instans av buzzeren
 LSM303 compass;                     //Oppretter instans av akselerometer
-L3G gyro;
 
 
 
@@ -25,18 +24,19 @@ class SelfDriving
         int leftSpeed;
         int rightSpeed;
 
-        int PD(int input, int last, int target, int speed)
+        int PD(int input, int last, int speed, int batteryLevel)
         {
-            int error = target - input;
+            int error = 2000 - input;                                   //Converts position to error based on desired position
+            float batteryCorr = 1.00E+00 - exp(-1.00E-01*batteryLevel); //Correction for battey level
 
-            int adjust = 2.0*error*((float)speed/(float)target) + (error-last)*0.5;
+            int adjust = 0.4*error + 2.0*(error-last);                  //Adjustment based on error and deriavative
 
-            int left = constrain(speed - adjust, -400, 400);
-            int right = constrain(speed + adjust, -400, 400);
+            int left = constrain(speed - adjust, -400, 400);            //Left motor speed based on adjustment
+            int right = constrain(speed + adjust, -400, 400);           //Right motor speed based on adjustment
 
-            motors.setSpeeds(left, right);
+            motors.setSpeeds(left*batteryCorr, right*batteryCorr);      //Set speeds adjusted for battery level
 
-            return error;
+            return error;                                               //Return error to calculate next deriavative
         }
 
     public:
@@ -56,12 +56,13 @@ class SelfDriving
             }
         }
 
-        void followLinePD(int speed)
+        void followLinePD(int speed, int batteryLevel)
         {
             static int last = 0;
-            int position = lineSensors.readLine(lineSensorValues);          //Reads position from lineSensors
-            last = PD(position, last, 2000, speed);                         //Adjusts based on position and stores return value
+            int position = lineSensors.readLine(lineSensorValues);  //Reads position from lineSensors
+            last = PD(position, last, speed, batteryLevel);         //Adjusts motors based on position and stores return value
         }
+
 };
 
 SelfDriving drive;                  //Instans for sjølvkjøring
@@ -79,6 +80,6 @@ void setup()
 void loop()
 {
 
-    drive.followLinePD(200);
+    drive.followLinePD(400, 100);
     
 }
