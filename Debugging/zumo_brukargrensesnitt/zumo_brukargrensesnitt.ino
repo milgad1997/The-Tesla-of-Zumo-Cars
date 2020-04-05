@@ -193,12 +193,12 @@ class Interface
             static int config[] = {0, 0};                                       //Array stores mode and configuration.
 
             char* modes[] = {                                                   //Array with names of modes.
-                "Calibrate linesensors",
-                "Line follower",
-                "Object follower",
+                "Calib",
+                "Line",
+                "Object",
                 "Square",
                 "Circle",
-                "Back and forth",
+                "B and F",
                 "Slalom"    
             };
 
@@ -366,6 +366,7 @@ class Interface
                     lcd.print(message[x]);                      //Printer bokstav
                 }
             }
+        }  
 
 
         void enableForceConfig()
