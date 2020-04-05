@@ -23,26 +23,89 @@ class SelfDriving
 
         void rotate(int degrees)
         {
-            //Teoretisk count per meter er 909.7(2*pi*r)=7425
+            float arcCounts = 7.63125*degrees;                  //Calibrated number of counts for given angle
 
-            int counts = encoders.getCountsLeft();
-            float arcCounts = 0.267*7425*degrees/360;       //Buelengda på 360-rotasjon er 0.267m
-            
-            rightSpeed = 200*degrees/abs(degrees);          //Endrer forteiknet avhengig av forteikn på vinkel
-            leftSpeed = -rightSpeed;
+            int leftStart = encoders.getCountsLeft();           //Start counts left
+            int rightStart = encoders.getCountsRight();         //Start counts right
 
-            motors.setSpeeds(0, 0);
-            delay(50);
+            int sum = 0;
 
-            while (abs(encoders.getCountsLeft() - counts) < abs(arcCounts)) {
-                motors.setSpeeds(leftSpeed, rightSpeed);
+            motors.setSpeeds(0, 0);                             //Stop motor before rotation
+            delay(50);                                          //Delay to get rid of momentum
+
+            while (encoders.getCountsRight() - rightStart < arcCounts) 
+            {
+                int left = encoders.getCountsLeft() - leftStart;        //Left counts since start
+                int right = encoders.getCountsRight() - rightStart;     //Right counts since start
+                int err = left + right;                                 //Error based on difference in counts
+
+                sum += err;                                             //Integral of error
+                
+                int adjust = 0.1*err + 0.001*sum;                       //Calculates weighted adjustment
+
+                left = constrain(-200 + adjust, -400, 400);             //New left speed
+                right = constrain(200 - adjust, -400, 400);             //New right speed
+                
+                motors.setSpeeds(left, right);                          //Set motor speeds
             }
 
-            motors.setSpeeds(0, 0);
-            delay(50);
+            motors.setSpeeds(0, 0);                                     //Stop motors after rotation
+            delay(50);                                                  //Delay to get rid of momentum
+        }
 
-            //motors.setSpeeds(leftSpeed, rightSpeed);
-            //delay(800*abs(degrees)/360);                         //Går ut ifrå 800ms ved 200 gir 360 graders rotasjon
+
+        int encoderPD(int leftStart, int rightStart, int last)
+        {
+            int left = encoders.getCountsLeft() - leftStart;        //Left counts since start
+            int right = encoders.getCountsRight() - rightStart;     //Right counts since start
+            int err = left - right;                                 //Error based on difference in counts
+            
+            int adjust = 0.5*err + 0.1*(err - last);                //Calculates weighted adjustment
+
+            left = constrain(200 - adjust, -400, 400);              //New left speed
+            right = constrain(200 + adjust, -400, 400);             //New right speed
+            
+            motors.setSpeeds(left, right);                          //Set motor speeds
+
+            return err;                                             //Return error for next deriavative
+        }
+
+
+        void line(unsigned long time) 
+        {
+            unsigned long start = millis();                             //Store start time
+
+            int leftCounter = encoders.getCountsLeft();                 //Start counts left
+            int rightCounter = encoders.getCountsRight();               //Start counts right
+
+            while (millis() - start < time)                             //Drives forward for set amount of time
+            {
+                static int last = 0;
+                last = encoderPD(leftCounter, rightCounter, last);      //Adjusts motor speeds and stores return value
+            }
+            motors.setSpeeds(0,0);                                      //Stops motors at end of time period
+            delay(50);                                                  //Delay to get rid of momentum
+        }
+
+
+        int PD(int input, int last, int speed, int batteryLevel = 100, bool emergencyPower = false)
+        {
+            int error = 2000 - input;                                   //Converts position to error based on desired position
+            float batteryCorr = 1.00E+00 - exp(-1.00E-01*batteryLevel); //Correction for battey level
+
+            int adjust = 0.4*error + 2.0*(error-last);                  //Adjustment based on error and deriavative
+
+            int left = constrain(speed - adjust, -400, 400);            //Left motor speed based on adjustment
+            int right = constrain(speed + adjust, -400, 400);           //Right motor speed based on adjustment
+
+            if (batteryLevel <= 10 && !emergencyPower) {                //If battery level is to low, stop motors
+                left = 0;                          
+                right = 0;
+            }
+
+            motors.setSpeeds(left*batteryCorr, right*batteryCorr);      //Set speeds adjusted for battery level
+
+            return error;                                               //Return error for next deriavative
         }
 
 
@@ -100,12 +163,19 @@ class SelfDriving
         }
 
 
+        void followLinePD(int speed, int batteryLevel)
+        {
+            static int last = 0;
+            int position = lineSensors.readLine(lineSensorValues);  //Reads position from lineSensors
+            last = PD(position, last, speed, batteryLevel);         //Adjusts motors based on position and stores return value
+        }
+
+
         void square()
         {
             for (byte n = 0; n < 4; n++) {
-                motors.setSpeeds(200, 200);
-                delay(2000);
-                rotate(90);
+                line(3000);                             //Drive forward
+                rotate(90);                             //Turn 90 degrees
             }
         }
 
@@ -120,15 +190,9 @@ class SelfDriving
 
         void backAndForth()
         {
-            motors.setSpeeds(200, 200);
-            delay(2000);
-           
-            rotate(180);
-            
-            motors.setSpeeds(200, 200);
-            delay(2000);
-            motors.setSpeeds(0, 0);
-
+            line(3000);                             //Drive forward
+            rotate(180);                            //Turn 180 degrees
+            line(3000);                             //Drive back to origin
         }
 
 
