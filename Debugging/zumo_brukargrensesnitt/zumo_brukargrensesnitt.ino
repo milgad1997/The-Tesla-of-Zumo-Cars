@@ -366,7 +366,6 @@ class Interface
                     lcd.print(message[x]);                      //Printer bokstav
                 }
             }
-        }  
 
 
         void enableForceConfig()

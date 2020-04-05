@@ -1,3 +1,7 @@
+/*
+Under arbeid...
+*/
+
 #include <Zumo32U4.h>               //Importerer Zumo-biblioteket
 
 Zumo32U4LCD lcd;                    //Oppretter instans av LCD-display
