@@ -166,98 +166,49 @@ class SelfDriving
 
 class Interface
 {
+    private:
+
+        bool force = true;      //Variable that controls whether or not buttons are required to prompt configuration.
+
+
+        void print(char* string)
+        {
+            static unsigned long timer = millis();              //Variabel som lagrer tida for siste print
+
+            if (millis() - timer > 100) {                       //Printer ikkje oftare enn kvart 100ms for lesbarhet
+                lcd.clear();
+                lcd.print(string);                               //Printer tal utan desimalar
+                lcd.gotoXY(0, 1);
+                lcd.print("<A B^ C>");
+                
+                timer = millis();                               //Lagrer tida
+            }
+        }
+
+
     public:
 
         int* command()
         {
-            //Vil prøve å få på rolling på LCD, slik at me kan skrive lengre instruksar...
+            static int config[] = {0, 0};                                       //Array stores mode and configuration.
 
-            static int config[] = {-1, 0};
-
-            char* selection[] = {
-                "Calibrate linesensors",
-                "Line follower",
-                "Object follower",
+            char* modes[] = {                                                   //Array with names of modes.
+                "Calib",
+                "Line",
+                "Object",
                 "Square",
                 "Circle",
-                "Back and forth",
+                "B and F",
                 "Slalom"    
             };
 
-            if (buttonB.getSingleDebouncedRelease()) {
-                while (true) {
-                    lcd.clear();
-                    lcd.print("B to continue");
-                    lcd.gotoXY(0, 1);
-                    lcd.print("A or C to configure");
-
-                    if (buttonB.getSingleDebouncedRelease()) return config;
-                    if (buttonA.isPressed() || buttonC.isPressed()) break;
-                } 
-            }
-            
-            if (buttonA.getSingleDebouncedRelease() || buttonC.getSingleDebouncedRelease()) {
-                config[1] = 0;
-
-                while (true) {
-                    lcd.clear();
-                    lcd.print(selection[config[0]]);
-                    lcd.gotoXY(0, 1);
-                    lcd.print("<A B^ C>");
-
-                    if (buttonA.getSingleDebouncedRelease()) config[0]--;
-                    if (buttonC.getSingleDebouncedRelease()) config[0]++;
-                    if (buttonB.getSingleDebouncedRelease()) {
-                        if (config[0] == 1) {
-                            while (true) {
-                                lcd.clear();
-                                if (config[1] == 0) lcd.print("Normal");
-                                if (config[1] == 1) lcd.print("PID");
-                                lcd.gotoXY(0, 1);
-                                lcd.print("<A B^ C>");
-                                        
-                                if (buttonA.getSingleDebouncedRelease()) config[1]--;
-                                if (buttonC.getSingleDebouncedRelease()) config[1]++;
-                                if (buttonB.getSingleDebouncedRelease()) break;
-                                
-                                if (config[1] < 0) config[1] = 1; //Må hardkode sidan kvart element i selection har ulik mengde bytes
-                                if (config[1] > 1) config[1] = 0;
-                            }
-                        }
-
-                        if (config[0] == 6) {
-                            while (true) {
-                                lcd.clear();
-                                lcd.print("cm: ");
-                                lcd.gotoXY(4, 0);
-                                lcd.print(config[1]);
-                                lcd.gotoXY(0, 1);
-                                lcd.print("<A B^ C>");
-
-                                if (buttonA.getSingleDebouncedRelease()) config[1] -= 10;
-                                if (buttonC.getSingleDebouncedRelease()) config[1] += 10;
-                                if (buttonB.getSingleDebouncedRelease()) break;
-                                
-                                if (config[1] < 0) config[1] = 100; //Må hardkode sidan kvart element i selection har ulik mengde bytes
-                                if (config[1] > 100) config[1] = 0;
-                            }
-                        }
-
-                        break;
-                    }
-
-                    if (config[0] < 0) config[0] = 6; //Må hardkode sidan kvart element i selection har ulik mengde bytes
-                    if (config[0] > 6) config[0] = 0; 
-                }
-            }
-            
-            if (usbPowerPresent() && (buttonA.isPressed() || buttonC.isPressed())) {
-                if (!Serial) Serial.begin(9600);
-                while (!Serial);
+            if (usbPowerPresent() && (buttonA.isPressed() || buttonC.isPressed() || force)) {   //Prompts configuration in serial monitor.
+                if (!Serial) Serial.begin(9600);                                                //Initiates serial monitor.
+                while (!Serial);                                                                //Waits for serial communication.
 
                 lcd.clear();
 
-                Serial.print(
+                Serial.print(                                                                   //Prints selection of modes on monitor.
                     "Select mode:\n\n"
                     "q: Quit serial communication\n"
                     "0: Calibrate linesensors\n"
@@ -270,17 +221,17 @@ class Interface
                     );
                 
                 while (Serial) {
-                    if (Serial.available()) {
-                        config[0] = Serial.parseInt();
+                    if (Serial.available()) {                                           //If received bytes larger than zero.
+                        config[0] = Serial.parseInt();                                  //Reads integer.
 
                         switch (config[0]) {
                             case 'q':
                                 Serial.print("Quiting...\n\n");
-                                Serial.end();
+                                Serial.end();                                           //Ends serial communication.
                                 break;
 
-                            case 1:
-                                Serial.print(
+                            case 1:                                                     //Prompts line follower configuration.
+                                Serial.print(                                           //Prints selection of configurations.
                                     "Configure mode:\n\n"
                                     "   0: Normal\n"
                                     "   1: PD-regulated\n\n"
@@ -288,16 +239,16 @@ class Interface
                                     );
                                 break;
 
-                            case 6:
-                                Serial.print("Enter centimeters between cones: ");
+                            case 6:                                                     //Prompts slalom configuration.
+                                Serial.print("Enter centimeters between cones: ");      //Asks for distance.
                                 break;
                         }
 
-                        while (config[0] == 1 || config[0] == 6) {
+                        while (Serial && (config[0] == 1 || config[0] == 6)) {          //If mode need configuration.
                             if (Serial.available()) {
-                                config[1] = Serial.parseInt();
+                                config[1] = Serial.parseInt();                          //Stores configuration.
 
-                                Serial.print(config[1]);
+                                Serial.print(config[1]);                                //Prints configuration to monitor.
                                 break;
                             }
                         }
@@ -308,13 +259,68 @@ class Interface
                             );       
                         lcd.print("Ready.");
 
-                        buttonB.waitForRelease();
+                        buttonB.waitForRelease();   //Waits for button B before initializing configuration.
+                        lcd.clear();
                         break;        
                     }
                 }
             }
 
-            return config;
+            if (buttonB.getSingleDebouncedRelease()) {                          //Pauses if button B is pressed.
+                lcd.clear();
+                lcd.print("B to continue");
+                lcd.gotoXY(0, 1);
+                lcd.print("A or C to configure");
+                
+                while (true) {                                                  //Continuously checks if somthing happens.
+                    if (buttonB.getSingleDebouncedRelease()) return config;     //Continues if button B is pressed again.
+                    if (buttonA.isPressed() || buttonC.isPressed()) break;      //Any other button prompts selection of modes.
+                } 
+            }
+            
+            if (buttonA.getSingleDebouncedRelease() || buttonC.getSingleDebouncedRelease() || force) {  //Prompts selection of modes.
+                config[1] = 0;                                                                          //Resets configuration.
+
+                while (true) {                                                          //Continuously checks if somthing happens.                                                     
+                    print(modes[config[0]]);                                            //Prints current mode.
+
+                    if (buttonA.getSingleDebouncedRelease()) config[0]--;               //Toggles back to previous mode.
+                    if (buttonC.getSingleDebouncedRelease()) config[0]++;               //Toggles forward to following mode.
+                    if (buttonB.getSingleDebouncedRelease()) {                          //Chooses current mode.
+                        while (config[0] == 1) {                                        //Prompts line follower configuration.
+                            if (config[1] == 0) print("Normal");                        //Prints current configuration.
+                            if (config[1] == 1) print("PID");
+                                        
+                            if (buttonA.getSingleDebouncedRelease()) config[1]--;       //Toggles back to previous configuration.
+                            if (buttonC.getSingleDebouncedRelease()) config[1]++;       //Toggles forward to following configuration.
+                            if (buttonB.getSingleDebouncedRelease()) break;             //Chooses current configuration.
+
+                            if (config[1] < 0) config[1] = 1;                           //Toggles to rightmost configuration.
+                            if (config[1] > 1) config[1] = 0;                           //Toggles to leftmost configuration.
+                        }
+
+                        while (config[0] == 6) {                                        //Prompts slalom configuration.
+                            print("cm: ");
+                            print(config[1], 4, 0);                                     //Prints current distance between cones.
+
+                            if (buttonA.getSingleDebouncedRelease()) config[1] -= 10;   //Increments distance between cones.
+                            if (buttonC.getSingleDebouncedRelease()) config[1] += 10;   //Decrements distance between cones.
+                            if (buttonB.getSingleDebouncedRelease()) break;             //Chooses current distance.
+                                
+                            if (config[1] < 0) config[1] = 100;                         //Toggles to rightmost configuration.
+                            if (config[1] > 100) config[1] = 0;                         //Toggles to leftmost configuration.
+                        }
+
+                        break;                                                          //Leaves selection of modes.
+                    }
+
+                    if (config[0] < 0) config[0] = 6;                                   //Toggles to rightmost mode.
+                    if (config[0] > 6) config[0] = 0;                                   //Toggles to leftmost mode.
+                }
+            }
+            
+            if (force) force = false;               //Turns of forcing.
+            return config;                          //Returns pointer to array that stores configuration.
         }
 
 
@@ -360,7 +366,13 @@ class Interface
                     lcd.print(message[x]);                      //Printer bokstav
                 }
             }
-        }         
+        }  
+
+
+        void enableForceConfig()
+        {
+            force = true;           //Forces to configure a single time after call.
+        }       
 };
 
 
@@ -532,10 +544,7 @@ Battery battery;                    //Instans for batteri
 
 void setup() 
 {
-    lcd.clear();
-    lcd.print("Press A");
-    lcd.print("to start");
-
+    intf.printMessage("Press A to start");
     while(!buttonA.isPressed());
 }
 
@@ -548,6 +557,7 @@ void loop()
     switch (config[0]) {
         case 0:
             drive.calibrateSensors();                                   //Kalibrerer sensorane på kommando
+            intf.enableForceConfig();
             break;
 
         case 1:
@@ -566,18 +576,22 @@ void loop()
         
         case 3:
             drive.square();
+            intf.enableForceConfig();
             break;
 
         case 4:
             drive.circle();
+            intf.enableForceConfig();
             break;
 
         case 5:
             drive.backAndForth();
+            intf.enableForceConfig();
             break;
 
         case 6:
             drive.slalom();
+            intf.enableForceConfig();
             break;
 
         default:
