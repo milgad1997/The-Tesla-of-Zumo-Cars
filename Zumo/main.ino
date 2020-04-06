@@ -331,6 +331,7 @@ class Interface
             }
 
             if (buttonB.getSingleDebouncedRelease()) {                          //Pauses if button B is pressed.
+                motors.setSpeeds(0,0);
                 lcd.clear();
                 lcd.print("B to continue");
                 lcd.gotoXY(0, 1);
@@ -338,7 +339,10 @@ class Interface
                 
                 while (true) {                                                  //Continuously checks if somthing happens.
                     if (buttonB.getSingleDebouncedRelease()) return config;     //Continues if button B is pressed again.
-                    if (buttonA.isPressed() || buttonC.isPressed()) break;      //Any other button prompts selection of modes.
+                    if (buttonA.isPressed() || buttonC.isPressed()){
+                        enableForceConfig();                                    //Any other button prompts selection of modes.
+                        break;  
+                    }
                 } 
             }
             
@@ -406,6 +410,7 @@ class Interface
             static unsigned long timer = millis();              //Variabel som lagrer tida for siste print
 
             if (millis() - timer > 100) {                       //Printer ikkje oftare enn kvart 100ms for lesbarhet
+                lcd.clear();
                 lcd.gotoXY(X, Y);                               //Går til valgt posisjon på LCD
                 lcd.print(value);                               //Printer tal utan desimalar
                 
@@ -549,9 +554,8 @@ class Battery
 
         int health;
         int cycles;
-        float level;
-        float lastTrip;
-        bool empty;
+        float level = 100.0;
+        bool empty = false;
 
 
     public:
@@ -570,9 +574,11 @@ class Battery
         }
 
 
-        int getBatteryLevel(float trip, float weight=0, float speed=0)
+        int getBatteryLevel(float trip, float weight=0)
         {
-            level = constrain(level - (trip-lastTrip)*(275+weight)/275, 0, 100);  //Rekner ut batterinivå
+            static float lastTrip = 0.0;
+
+            level -= (trip-lastTrip)*(275+weight)/275;  //Rekner ut batterinivå
             lastTrip = trip;                                                      //Lagrer siste trip
 
             if (level <= 10) {                                                    //Viss batterinivået er under 10%
@@ -580,7 +586,7 @@ class Battery
                 ledRed(HIGH);
             }
 
-            return (int)level;                                                    //Returnerer batterinivå
+            return constrain(level, 0, 100);                                      //Returnerer batterinivå
         }
     
 
@@ -608,8 +614,12 @@ Battery battery;                    //Instans for batteri
 
 void setup() 
 {
+    Serial.begin(9600);
+
     intf.printMessage("Press A to start");
+    delay(50);
     while(!buttonA.isPressed());
+    delay(500);
 }
 
 
@@ -625,10 +635,11 @@ void loop()
             break;
 
         case 1:
-            int distance = motion.getTrip();                            //Henter distanse(tur) kjørt
+            float distance = motion.getTrip();                          //Henter distanse(tur) kjørt
             int batteryLevel = battery.getBatteryLevel(distance);       //Henter batterinivå basert på distanse kjørt
 
-            drive.followLine(batteryLevel);                   //Korrigerer retning basert på posisjon
+            if (config[1] == 0) drive.followLine(batteryLevel);         //Korrigerer retning basert på posisjon
+            else drive.followLinePD(300, batteryLevel);
 
             intf.print(distance, 0, 0);                                 //Printer posisjon til første linje på LCD
             intf.print(batteryLevel, 0, 1);                             //Printer batterinivå til andre linje på LCD
@@ -659,6 +670,7 @@ void loop()
             break;
 
         default:
+            intf.enableForceConfig();
             break;
     }
 }
