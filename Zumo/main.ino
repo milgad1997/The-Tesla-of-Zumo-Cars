@@ -620,7 +620,7 @@ void setup()
 void loop()
 {
     int* config = intf.command();
-
+/*
     switch (config[0]) {
         case 0:
             drive.calibrateSensors();                                   //Kalibrerer sensorane på kommando
@@ -666,4 +666,13 @@ void loop()
             intf.enableForceConfig();
             break;
     }
+*/
+    if (config[0] == 0) Serial.println("calib");
+    else if (config[0] == 1) Serial.println("line");
+    else if (config[0] == 2) Serial.println("object");
+    else if (config[0] == 3) Serial.println("square");
+    else if (config[0] == 4) Serial.println("circle");
+    else if (config[0] == 5) Serial.println("bnf");
+    else if (config[0] == 6) Serial.println("slalom");
+    delay(100);
 }
