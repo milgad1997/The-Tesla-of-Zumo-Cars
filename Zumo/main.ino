@@ -613,14 +613,7 @@ Battery battery;                    //Instans for batteri
 
 
 void setup() 
-{
-    Serial.begin(9600);
-
-    intf.printMessage("Press A to start");
-    delay(50);
-    while(!buttonA.isPressed());
-    delay(500);
-}
+{}
 
 
 
