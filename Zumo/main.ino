@@ -619,8 +619,11 @@ void setup()
 
 void loop()
 {
+    float distance;
+    int batteryLevel;
+
     int* config = intf.command();
-/*
+
     switch (config[0]) {
         case 0:
             drive.calibrateSensors();                                   //Kalibrerer sensorane på kommando
@@ -628,8 +631,8 @@ void loop()
             break;
 
         case 1:
-            float distance = motion.getTrip();                          //Henter distanse(tur) kjørt
-            int batteryLevel = battery.getBatteryLevel(distance);       //Henter batterinivå basert på distanse kjørt
+            distance = motion.getTrip();                          //Henter distanse(tur) kjørt
+            batteryLevel = battery.getBatteryLevel(distance);       //Henter batterinivå basert på distanse kjørt
 
             if (config[1] == 0) drive.followLine(batteryLevel);         //Korrigerer retning basert på posisjon
             else drive.followLinePD(300, batteryLevel);
@@ -666,13 +669,4 @@ void loop()
             intf.enableForceConfig();
             break;
     }
-*/
-    if (config[0] == 0) Serial.println("calib");
-    else if (config[0] == 1) Serial.println("line");
-    else if (config[0] == 2) Serial.println("object");
-    else if (config[0] == 3) Serial.println("square");
-    else if (config[0] == 4) Serial.println("circle");
-    else if (config[0] == 5) Serial.println("bnf");
-    else if (config[0] == 6) Serial.println("slalom");
-    delay(100);
 }
