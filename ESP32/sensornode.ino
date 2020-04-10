@@ -1,5 +1,73 @@
-/* Comment this out to disable prints and save space */
 #define BLYNK_PRINT Serial
+
+
+#include <WiFi.h>
+#include <WiFiClient.h>
+#include <BlynkSimpleEsp32.h>
+
+#define Trigger 8
+#define Echo 9
+
+// You should get Auth Token in the Blynk App.
+// Go to the Project Settings (nut icon).
+char auth[] = "YourAuthToken";
+
+// Your WiFi credentials.
+// Set password to "" for open networks.
+char ssid[] = "YourNetworkName";
+char pass[] = "YourPassword";
+
+BlynkTimer timer;
+
+// This function sends Arduino's up time every second to Virtual Pin (5).
+// In the app, Widget's reading frequency should be set to PUSH. This means
+// that you define how often to send data to Blynk App.
+void myTimerEvent()
+{
+  tempsensor = analogRead(A0);
+  Blynk.virtualWrite(V5, tempSensor);
+  
+  // You can send any value at any time.
+  // Please don't send more that 10 values per second.
+  Blynk.virtualWrite(V5, millis() / 1000);
+}
+
+void setup()
+{
+  // Debug console
+  Serial.begin(9600);
+  Serial.begin(9600);
+  pinMode(Trigger, OUTPUT);
+  pinMode(Echo, INPUT);
+  
+  Blynk.begin(auth, ssid, pass);
+  // You can also specify server:
+  //Blynk.begin(auth, ssid, pass, "blynk-cloud.com", 80);
+  //Blynk.begin(auth, ssid, pass, IPAddress(192,168,1,100), 8080);
+
+  // Setup a function to be called every second
+  timer.setInterval(1000L, myTimerEvent);
+}
+
+void loop()
+{
+  digitalWrite(Trigger, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(Trigger, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(Trigger, LOW);
+
+  duration = pulseIn(Echo, HIGH);
+  distance = (duration\2)/29.1;
+  Blynk.virtualWrite(V6, millis() / 1000);
+  Blynk.run();
+  timer.run(); // Initiates BlynkTimer
+}
+
+
+/* Comment this out to disable prints and save space */
+/* #define BLYNK_PRINT Serial
 
 #include <WiFi.h>
 #include <WiFiClient.h>
@@ -144,3 +212,4 @@ void loop() {
     timer.run();                                                    // Initiates BlynkTimer
     server.handleClient();                                          //Checking web server to manage occurring events
 }
+*/
