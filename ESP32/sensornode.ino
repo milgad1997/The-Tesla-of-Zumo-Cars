@@ -60,8 +60,7 @@ class HCSR04UltrasonicSensor: public Sensor {
 
     public:
 
-        HCSR04UltrasonicSensor(byte echoPin, byte trigPin)
-        {
+        HCSR04UltrasonicSensor(byte echoPin, byte trigPin) {
             setPin(echoPin);
 
             trigger = trigPin;
@@ -112,6 +111,13 @@ BLYNK_WRITE(V1) {
 BLYNK_READ(V5) {
     // This command writes Arduino's uptime in seconds to Virtual Pin (5)
     Blynk.virtualWrite(V5, millis() / 1000);
+}
+
+
+char* floatToString(float number, byte precision) {
+    static char string[10];
+    
+    return dtostrf(number, 0, precision, string);
 }
 
 
